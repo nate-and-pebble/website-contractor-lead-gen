@@ -1,0 +1,397 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import {
+  Mail,
+  Phone,
+  ExternalLink,
+  PhoneOff,
+  Voicemail,
+  ThumbsDown,
+  Calendar,
+  Send,
+  Trophy,
+  Loader2,
+  Clock,
+  ArrowRight,
+} from "lucide-react";
+import { type ContactDetail } from "@/lib/api-client";
+import type { CallLog } from "@/lib/types";
+import { Skeleton } from "@/components/skeleton";
+import { DateTimePicker } from "@/components/date-time-picker";
+import type { CallOutcome } from "./page";
+
+interface CallPanelProps {
+  contact: ContactDetail | null;
+  loading: boolean;
+  callLogs: CallLog[];
+  onAction: (outcome: CallOutcome, opts?: { notes?: string; followUpAt?: string }) => void;
+}
+
+const OUTCOME_LABELS: Record<string, string> = {
+  no_answer: "No answer",
+  voicemail: "Left voicemail",
+  not_interested: "Not interested",
+  follow_up: "Scheduled follow-up",
+  moved_to_campaign: "Moved to campaign",
+  booked_meeting: "Booked meeting",
+};
+
+function formatLogDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) {
+    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  }
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+export function CallPanel({ contact, loading, callLogs, onAction }: CallPanelProps) {
+  const [acting, setActing] = useState<string | null>(null);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [showBookingDate, setShowBookingDate] = useState(false);
+  const [showMoveBoard, setShowMoveBoard] = useState(false);
+  const [actionNotes, setActionNotes] = useState("");
+  const moveBoardRef = useRef<HTMLDivElement>(null);
+
+  // Close move board dropdown on outside click
+  useEffect(() => {
+    if (!showMoveBoard) return;
+    function handleClick(e: MouseEvent) {
+      if (moveBoardRef.current && !moveBoardRef.current.contains(e.target as Node)) {
+        setShowMoveBoard(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showMoveBoard]);
+
+  const handleAction = async (outcome: CallOutcome, opts?: { notes?: string; followUpAt?: string }) => {
+    if (acting) return;
+    setActing(outcome);
+    await onAction(outcome, opts);
+    setActing(null);
+    setShowSchedule(false);
+    setShowBookingDate(false);
+    setActionNotes("");
+  };
+
+  if (loading) {
+    return (
+      <div className="flex-1 space-y-4 p-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-24 rounded-lg" />
+        <Skeleton className="h-32 rounded-lg" />
+      </div>
+    );
+  }
+
+  if (!contact) {
+    return (
+      <div className="flex flex-1 items-center justify-center text-sm text-zinc-400">
+        Select a contact to start calling
+      </div>
+    );
+  }
+
+  const research = contact.research;
+  const researchData = (research?.research_data ?? {}) as Record<string, unknown>;
+  const hooks = Array.isArray(researchData.personal_hooks)
+    ? (researchData.personal_hooks as string[])
+    : [];
+
+  return (
+    <div className="flex flex-1 flex-col min-h-0">
+      <div className="flex-1 space-y-5 overflow-y-auto p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-zinc-900">
+              {contact.first_name} {contact.last_name}
+            </h2>
+            <p className="mt-0.5 text-sm text-zinc-500">
+              {[contact.title, contact.company].filter(Boolean).join(" at ")}
+            </p>
+          </div>
+          <Link
+            href={`/contacts/${contact.id}`}
+            className="flex shrink-0 items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600"
+          >
+            Full profile <ExternalLink size={12} />
+          </Link>
+        </div>
+
+        {/* Quick contact info — prominent for calling */}
+        <div className="flex gap-4">
+          {contact.phone && (
+            <a
+              href={`tel:${contact.phone}`}
+              className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100"
+            >
+              <Phone size={16} />
+              {contact.phone}
+            </a>
+          )}
+          {contact.email && (
+            <a
+              href={`mailto:${contact.email}`}
+              className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-50"
+            >
+              <Mail size={16} />
+              {contact.email}
+            </a>
+          )}
+        </div>
+
+        {/* Research Summary — call prep */}
+        {research?.summary ? (
+          <div className="rounded-lg border-l-4 border-blue-400 bg-blue-50 p-4">
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-blue-600">
+              Call Prep
+            </h3>
+            <p className="text-sm leading-relaxed text-blue-900">
+              {research.summary}
+            </p>
+          </div>
+        ) : null}
+
+        {/* Hooks — talking points */}
+        {hooks.length > 0 ? (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Talking Points
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {hooks.map((hook, i) => (
+                <span
+                  key={i}
+                  className="rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700"
+                >
+                  {hook}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Professional Background */}
+        {researchData.professional_background != null ? (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Background
+            </h3>
+            <p className="text-sm leading-relaxed text-zinc-700">
+              {typeof researchData.professional_background === "string"
+                ? researchData.professional_background
+                : JSON.stringify(researchData.professional_background)}
+            </p>
+          </div>
+        ) : null}
+
+        {/* Notes input */}
+        <div>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            Call Notes
+          </h3>
+          <textarea
+            value={actionNotes}
+            onChange={(e) => setActionNotes(e.target.value)}
+            placeholder="Jot notes during the call..."
+            rows={2}
+            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-300 focus:outline-none"
+          />
+        </div>
+
+        {/* Call History */}
+        {callLogs.length > 0 ? (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Call History
+            </h3>
+            <div className="space-y-2">
+              {callLogs.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex items-start gap-3 rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2"
+                >
+                  <Clock size={14} className="mt-0.5 shrink-0 text-zinc-400" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-zinc-700">
+                        {OUTCOME_LABELS[log.outcome] ?? log.outcome}
+                      </span>
+                      <span className="text-[10px] text-zinc-400">
+                        {formatLogDate(log.created_at)}
+                      </span>
+                    </div>
+                    {log.notes && (
+                      <p className="mt-0.5 text-xs text-zinc-500">{log.notes}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Schedule follow-up picker */}
+      {showSchedule && (
+        <div className="border-t border-zinc-100 bg-zinc-50 px-6 py-3">
+          <DateTimePicker
+            accent="amber"
+            confirmLabel="Schedule Follow-up"
+            onSelect={(iso) => {
+              handleAction("follow_up", {
+                notes: actionNotes || undefined,
+                followUpAt: iso,
+              });
+            }}
+            onCancel={() => setShowSchedule(false)}
+          />
+        </div>
+      )}
+
+      {/* Book meeting date picker */}
+      {showBookingDate && (
+        <div className="border-t border-zinc-100 bg-emerald-50/50 px-6 py-3">
+          <DateTimePicker
+            accent="emerald"
+            confirmLabel="Book It!"
+            onSelect={(iso) => {
+              handleAction("booked_meeting", {
+                notes: actionNotes || undefined,
+                followUpAt: iso,
+              });
+            }}
+            onCancel={() => setShowBookingDate(false)}
+          />
+        </div>
+      )}
+
+      {/* Action bar */}
+      <div className="border-t border-zinc-200 bg-white px-6 py-3 space-y-2">
+        {/* Call outcome buttons */}
+        <div className="grid grid-cols-3 gap-2">
+          <ActionButton
+            icon={<PhoneOff size={14} />}
+            label="No Answer"
+            acting={acting}
+            outcome="no_answer"
+            onClick={() => handleAction("no_answer", { notes: actionNotes || undefined })}
+            className="border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+          />
+          <ActionButton
+            icon={<Voicemail size={14} />}
+            label="Left Voicemail"
+            acting={acting}
+            outcome="voicemail"
+            onClick={() => handleAction("voicemail", { notes: actionNotes || undefined })}
+            className="border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+          />
+          <ActionButton
+            icon={<Calendar size={14} />}
+            label="Schedule Follow-up"
+            acting={acting}
+            outcome="follow_up"
+            onClick={() => setShowSchedule(!showSchedule)}
+            className="border-amber-200 bg-white text-amber-700 hover:bg-amber-50"
+          />
+        </div>
+
+        {/* Move board dropdown */}
+        <div className="relative" ref={moveBoardRef}>
+          <button
+            onClick={() => setShowMoveBoard(!showMoveBoard)}
+            disabled={!!acting}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 disabled:opacity-50"
+          >
+            <ArrowRight size={14} />
+            Move Board
+          </button>
+          {showMoveBoard && (
+            <div className="absolute bottom-full left-0 right-0 mb-1 z-20 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
+              <button
+                onClick={() => {
+                  setShowMoveBoard(false);
+                  setShowBookingDate(!showBookingDate);
+                }}
+                disabled={!!acting}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-zinc-700 hover:bg-emerald-50 disabled:opacity-50"
+              >
+                <Trophy size={16} className="text-emerald-600" />
+                <div>
+                  <p className="font-medium">Booked Meeting!</p>
+                  <p className="text-[10px] text-zinc-400">Schedule and move to pipeline</p>
+                </div>
+              </button>
+              <button
+                onClick={() => {
+                  setShowMoveBoard(false);
+                  handleAction("moved_to_campaign", { notes: actionNotes || undefined });
+                }}
+                disabled={!!acting}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-zinc-700 hover:bg-green-50 disabled:opacity-50"
+              >
+                <Send size={16} className="text-green-600" />
+                <div>
+                  <p className="font-medium">Enroll in Email Campaign</p>
+                  <p className="text-[10px] text-zinc-400">Move to campaign outreach</p>
+                </div>
+              </button>
+              <div className="mx-3 my-1 border-t border-zinc-100" />
+              <button
+                onClick={() => {
+                  setShowMoveBoard(false);
+                  handleAction("not_interested", { notes: actionNotes || undefined });
+                }}
+                disabled={!!acting}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+              >
+                <ThumbsDown size={16} />
+                <div>
+                  <p className="font-medium">Not Interested</p>
+                  <p className="text-[10px] text-zinc-400">Mark as dead, remove from list</p>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActionButton({
+  icon,
+  label,
+  acting,
+  outcome,
+  onClick,
+  className,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  acting: string | null;
+  outcome: string;
+  onClick: () => void;
+  className: string;
+}) {
+  const isActing = acting === outcome;
+  return (
+    <button
+      onClick={onClick}
+      disabled={!!acting}
+      className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${className}`}
+    >
+      {isActing ? <Loader2 size={14} className="animate-spin" /> : icon}
+      {label}
+    </button>
+  );
+}

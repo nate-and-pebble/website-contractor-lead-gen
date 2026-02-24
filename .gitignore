@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# CLI build output
+/dist
+
+# CLI config (local machine)
+.ple/

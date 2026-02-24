@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Provider Lead Engine
 
-## Getting Started
+A Next.js application for finding and connecting with providers. See `architecture.md` for full system design.
 
-First, run the development server:
+## Setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Create `.env.local` from the template:
+
+```bash
+cp .env.example .env.local
+```
+
+3. Populate secrets in `.env.local`. All credentials are stored in `~/openclaw-config/openclaw.json` under the `PROVIDER_LEAD_ENGINE_*` keys. See `.env.example` for the full list. Key mappings:
+
+| `.env.local` variable | Purpose |
+|---|---|
+| `SALES_ENGINE_API_KEY` | Bearer token for API route auth |
+| `SUPABASE_URL` | Supabase project URL (server-side) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (public) |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/publishable key (public) |
+| `SUPABASE_SECRET_KEY` | Supabase service role key (server only) |
+| `SUPABASE_DB_HOST` | Postgres host (from Supabase dashboard → Connect) |
+| `SUPABASE_DB_PORT` | Postgres port (default `5432`) |
+| `SUPABASE_DB_USER` | Postgres user (default `postgres`) |
+| `SUPABASE_DB_PASSWORD` | Postgres password |
+| `SUPABASE_DB_NAME` | Postgres database (default `postgres`) |
+| `SUPABASE_DB_SSLMODE` | SSL mode (`require` for Supabase) |
+| `LEADS_PIN` | PIN for web UI login |
+| `LEADS_SECRET` | HMAC secret for session signing |
+
+> Never hardcode secrets. `.env*` files are gitignored.
+
+4. Verify DB connectivity:
+
+```bash
+npm run cli -- db status
+```
+
+5. Run the dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## CLI
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run cli -- <command>
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Key commands: `auth login`, `db migrate`, `db status`, `dev`, `build`. See `architecture.md` for full CLI docs.
 
-## Learn More
+## Deploy
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deployed on Vercel. Environment variables are configured in the Vercel dashboard.
