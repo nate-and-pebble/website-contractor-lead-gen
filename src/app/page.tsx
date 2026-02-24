@@ -6,7 +6,8 @@ export default function Home() {
           Provider Lead Engine
         </h1>
         <p className="max-w-md text-lg text-zinc-600 dark:text-zinc-400">
-          Find and connect with the right providers for your needs.
+          Welcome to the Provider Lead Engine portal. Find and connect with the
+          right providers for your needs.
         </p>
       </main>
     </div>
