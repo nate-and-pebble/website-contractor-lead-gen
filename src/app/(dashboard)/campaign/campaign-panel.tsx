@@ -22,6 +22,8 @@ import {
   Mic,
   Video,
   FileText,
+  Linkedin,
+  Instagram,
 } from "lucide-react";
 import { type ContactDetail } from "@/lib/api-client";
 import type { CallLog } from "@/lib/types";
@@ -181,6 +183,14 @@ export function CampaignPanel({ contact, loading, activityLogs, onAction, onBack
     ? (researchData.personal_hooks as string[])
     : [];
 
+  // Extract LinkedIn + Instagram URLs from research data (hydration format)
+  const hydration = researchData.hydration as Record<string, unknown> | undefined;
+  const contactInfoData = hydration?.contact_info as Record<string, unknown> | undefined;
+  const linkedinObj = contactInfoData?.linkedin as Record<string, unknown> | undefined;
+  const linkedinUrl = typeof linkedinObj?.value === "string" ? linkedinObj.value : null;
+  const instagramObj = contactInfoData?.instagram as Record<string, unknown> | undefined;
+  const instagramUrl = typeof instagramObj?.value === "string" ? instagramObj.value : null;
+
   return (
     <div className="flex flex-1 flex-col min-h-0">
       <div className="flex-1 space-y-5 overflow-y-auto p-4 md:p-6">
@@ -231,6 +241,28 @@ export function CampaignPanel({ contact, loading, activityLogs, onAction, onBack
             >
               <Phone size={16} />
               {contact.phone}
+            </a>
+          )}
+          {linkedinUrl && (
+            <a
+              href={linkedinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-700 transition-colors hover:bg-sky-100"
+            >
+              <Linkedin size={16} />
+              LinkedIn
+            </a>
+          )}
+          {instagramUrl && (
+            <a
+              href={instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-lg border border-pink-200 bg-pink-50 px-4 py-2 text-sm font-medium text-pink-700 transition-colors hover:bg-pink-100"
+            >
+              <Instagram size={16} />
+              Instagram
             </a>
           )}
         </div>
@@ -293,6 +325,54 @@ export function CampaignPanel({ contact, loading, activityLogs, onAction, onBack
             </div>
           </div>
         ) : null}
+
+        {/* Notes input */}
+        <div>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            Notes
+          </h3>
+          <textarea
+            value={actionNotes}
+            onChange={(e) => setActionNotes(e.target.value)}
+            placeholder="Add notes about this outreach..."
+            rows={2}
+            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-300 focus:outline-none"
+          />
+        </div>
+
+        {/* Activity History */}
+        {activityLogs.length > 0 ? (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Activity History
+            </h3>
+            <div className="space-y-2">
+              {activityLogs.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex items-start gap-3 rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2"
+                >
+                  <Clock size={14} className="mt-0.5 shrink-0 text-zinc-400" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-zinc-700">
+                        {OUTCOME_LABELS[log.outcome] ?? log.outcome}
+                      </span>
+                      <span className="text-[10px] text-zinc-400">
+                        {formatLogDate(log.created_at)}
+                      </span>
+                    </div>
+                    {log.notes && (
+                      <p className="mt-0.5 text-xs text-zinc-500">{log.notes}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {/* ---- Research Details (grouped near bottom) ---- */}
 
         {/* Professional Background */}
         {researchData.professional_background != null ? (
@@ -402,52 +482,6 @@ export function CampaignPanel({ contact, loading, activityLogs, onAction, onBack
             </div>
           );
         })()}
-
-        {/* Notes input */}
-        <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-            Notes
-          </h3>
-          <textarea
-            value={actionNotes}
-            onChange={(e) => setActionNotes(e.target.value)}
-            placeholder="Add notes about this outreach..."
-            rows={2}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-300 focus:outline-none"
-          />
-        </div>
-
-        {/* Activity History */}
-        {activityLogs.length > 0 ? (
-          <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-              Activity History
-            </h3>
-            <div className="space-y-2">
-              {activityLogs.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-start gap-3 rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2"
-                >
-                  <Clock size={14} className="mt-0.5 shrink-0 text-zinc-400" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-zinc-700">
-                        {OUTCOME_LABELS[log.outcome] ?? log.outcome}
-                      </span>
-                      <span className="text-[10px] text-zinc-400">
-                        {formatLogDate(log.created_at)}
-                      </span>
-                    </div>
-                    {log.notes && (
-                      <p className="mt-0.5 text-xs text-zinc-500">{log.notes}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </div>
 
       {/* Book meeting date picker */}

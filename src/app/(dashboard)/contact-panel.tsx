@@ -5,8 +5,6 @@ import Link from "next/link";
 import {
   Mail,
   Phone,
-  Building2,
-  Briefcase,
   ExternalLink,
   Send,
   PhoneCall,
@@ -18,6 +16,8 @@ import {
   Mic,
   Video,
   FileText,
+  Linkedin,
+  Instagram,
 } from "lucide-react";
 import { type ContactDetail, patchContact } from "@/lib/api-client";
 import { useToast } from "@/components/toast-provider";
@@ -111,6 +111,14 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate, onBa
     ? (researchData.personal_hooks as string[])
     : [];
 
+  // Extract LinkedIn URL from research data (hydration format)
+  const hydration = researchData.hydration as Record<string, unknown> | undefined;
+  const contactInfo = hydration?.contact_info as Record<string, unknown> | undefined;
+  const linkedinObj = contactInfo?.linkedin as Record<string, unknown> | undefined;
+  const linkedinUrl = typeof linkedinObj?.value === "string" ? linkedinObj.value : null;
+  const instagramObj = contactInfo?.instagram as Record<string, unknown> | undefined;
+  const instagramUrl = typeof instagramObj?.value === "string" ? instagramObj.value : null;
+
   return (
     <div className="flex flex-1 flex-col min-h-0">
       <div className="flex-1 space-y-5 overflow-y-auto p-4 md:p-6">
@@ -146,6 +154,65 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate, onBa
           </Link>
         </div>
 
+        {/* Contact Info — right under header */}
+        <div>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            Contact
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <InfoField icon={<Mail size={14} />} label="Email" value={contact.email ?? ""} field="email" onSave={saveField} />
+            <InfoField icon={<Phone size={14} />} label="Phone" value={contact.phone ?? ""} field="phone" onSave={saveField} />
+            {linkedinUrl ? (
+              <div className="flex items-center gap-2">
+                <span className="text-zinc-400"><Linkedin size={14} /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] uppercase text-zinc-400">LinkedIn</p>
+                  <a
+                    href={linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline truncate"
+                  >
+                    Profile <ExternalLink size={11} />
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-zinc-400"><Linkedin size={14} /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] uppercase text-zinc-400">LinkedIn</p>
+                  <span className="text-sm italic text-zinc-300">{"\u2014"}</span>
+                </div>
+              </div>
+            )}
+            {instagramUrl ? (
+              <div className="flex items-center gap-2">
+                <span className="text-zinc-400"><Instagram size={14} /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] uppercase text-zinc-400">Instagram</p>
+                  <a
+                    href={instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-pink-600 hover:underline truncate"
+                  >
+                    Profile <ExternalLink size={11} />
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-zinc-400"><Instagram size={14} /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] uppercase text-zinc-400">Instagram</p>
+                  <span className="text-sm italic text-zinc-300">{"\u2014"}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Research Summary */}
         {research?.summary ? (
           <div className="rounded-lg border-l-4 border-blue-400 bg-blue-50 p-4">
@@ -177,6 +244,23 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate, onBa
             </div>
           </div>
         ) : null}
+
+        {/* Notes */}
+        <div>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            Notes
+          </h3>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onBlur={saveNotes}
+            placeholder="Add notes before taking action..."
+            rows={3}
+            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-300 focus:outline-none"
+          />
+        </div>
+
+        {/* ---- Research Details (grouped near bottom) ---- */}
 
         {/* Professional Background */}
         {researchData.professional_background != null ? (
@@ -286,32 +370,6 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate, onBa
             </div>
           );
         })()}
-
-        {/* Contact Info */}
-        <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-            Contact
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <InfoField icon={<Mail size={14} />} label="Email" value={contact.email ?? ""} field="email" onSave={saveField} />
-            <InfoField icon={<Phone size={14} />} label="Phone" value={contact.phone ?? ""} field="phone" onSave={saveField} />
-          </div>
-        </div>
-
-        {/* Notes */}
-        <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-            Notes
-          </h3>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            onBlur={saveNotes}
-            placeholder="Add notes before taking action..."
-            rows={3}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-300 focus:outline-none"
-          />
-        </div>
       </div>
 
       {/* Action bar — sticky bottom */}
