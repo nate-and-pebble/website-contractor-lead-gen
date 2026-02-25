@@ -131,19 +131,24 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate, onBa
     // Prompt
     lines.push(`Your goal is to find their real work and/or personal email.
 
+CRITICAL: You MUST use web search extensively throughout this task. Do NOT skip searching. Do NOT rely on your training data or make assumptions — actually search the internet for every step. Perform multiple searches with different queries (their name + email, their name + company, their company domain + staff, etc.). This is a research task that is impossible without live web searches. If you do not search the web, your output is useless.
+
 Process:
-1. Perform an EXHAUSTIVE web search to find any email clearly linked to this person. (Don't stop early; keep digging until you're confident it's not publicly available.)
-2. If you find one, verify the linkage and cite the exact source. If not, find 2 or so coworker/staff emails from the same business to establish the company's email pattern.
-3. Use that pattern to infer the most likely email for the target person.
-4. Rank results by confidence.
+1. Perform an EXHAUSTIVE web search to find any email clearly linked to this person. Try many different search queries — their full name, company name, domain, social profiles, professional directories, conference speaker pages, podcast guest bios, press releases, etc. Do NOT stop after one or two searches. Keep digging until you are genuinely confident the email is not publicly available.
+2. If you find one, verify the linkage and cite the exact source URL where you found it.
+3. If you cannot find their email directly, find 2+ coworker/staff emails from the same business to establish the company's email pattern. IMPORTANT: Print out every coworker email you find and where you found it — I need to see the actual emails so I can verify your pattern analysis.
+4. Use that pattern to infer the most likely email for the target person.
+5. Rank results by confidence.
 
 Guidelines:
-- Prefer real staff inboxes over generic addresses.
+- You MUST search the internet. This is non-negotiable.
+- Prefer real staff inboxes over generic addresses (info@, hello@, contact@).
 - Don't guess until you have pattern evidence.
 - Be explicit about how conclusions were reached.
+- Show your work — list every coworker email found and its source.
 - Keep output concise and logical.
 
-Output format: Found Emails | Pattern Evidence | Best Guess | Fallbacks (optional)
+Output format: Found Emails | Coworker Emails Found (with sources) | Pattern Evidence | Best Guess | Fallbacks (optional)
 
 ---
 CONTACT PROFILE
