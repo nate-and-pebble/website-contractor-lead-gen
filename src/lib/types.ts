@@ -75,6 +75,8 @@ export interface Contact {
   company: string | null;
   status: string;
   disposition: string | null;
+  linkedin_url: string | null;
+  instagram_url: string | null;
   quality_score: number | null;
   notes: string | null;
   follow_up_at: string | null;

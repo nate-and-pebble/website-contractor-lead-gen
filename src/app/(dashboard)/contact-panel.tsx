@@ -111,13 +111,18 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate, onBa
     ? (researchData.personal_hooks as string[])
     : [];
 
-  // Extract LinkedIn URL from research data (hydration format)
+  // Resolve LinkedIn/Instagram: prefer contact record, fall back to hydration data
   const hydration = researchData.hydration as Record<string, unknown> | undefined;
-  const contactInfo = hydration?.contact_info as Record<string, unknown> | undefined;
-  const linkedinObj = contactInfo?.linkedin as Record<string, unknown> | undefined;
-  const linkedinUrl = typeof linkedinObj?.value === "string" ? linkedinObj.value : null;
-  const instagramObj = contactInfo?.instagram as Record<string, unknown> | undefined;
-  const instagramUrl = typeof instagramObj?.value === "string" ? instagramObj.value : null;
+  const contactInfoData = hydration?.contact_info as Record<string, unknown> | undefined;
+  const linkedinObj = contactInfoData?.linkedin as Record<string, unknown> | undefined;
+  const hydrationLinkedin = typeof linkedinObj?.value === "string" ? linkedinObj.value : null;
+  const social = contactInfoData?.social as Array<Record<string, unknown>> | undefined;
+  const igEntry = Array.isArray(social) ? social.find((s) => s.platform === "instagram") : undefined;
+  const hydrationInstagram = igEntry
+    ? (typeof igEntry.url === "string" ? igEntry.url : typeof igEntry.handle === "string" ? (igEntry.handle.startsWith("http") ? igEntry.handle : `https://instagram.com/${(igEntry.handle as string).replace(/^@/, "")}`) : null)
+    : null;
+  const linkedinUrl = contact.linkedin_url || hydrationLinkedin || "";
+  const instagramUrl = contact.instagram_url || hydrationInstagram || "";
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
@@ -162,54 +167,8 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate, onBa
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <InfoField icon={<Mail size={14} />} label="Email" value={contact.email ?? ""} field="email" onSave={saveField} />
             <InfoField icon={<Phone size={14} />} label="Phone" value={contact.phone ?? ""} field="phone" onSave={saveField} />
-            {linkedinUrl ? (
-              <div className="flex items-center gap-2">
-                <span className="text-zinc-400"><Linkedin size={14} /></span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] uppercase text-zinc-400">LinkedIn</p>
-                  <a
-                    href={linkedinUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline truncate"
-                  >
-                    Profile <ExternalLink size={11} />
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-zinc-400"><Linkedin size={14} /></span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] uppercase text-zinc-400">LinkedIn</p>
-                  <span className="text-sm italic text-zinc-300">{"\u2014"}</span>
-                </div>
-              </div>
-            )}
-            {instagramUrl ? (
-              <div className="flex items-center gap-2">
-                <span className="text-zinc-400"><Instagram size={14} /></span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] uppercase text-zinc-400">Instagram</p>
-                  <a
-                    href={instagramUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-pink-600 hover:underline truncate"
-                  >
-                    Profile <ExternalLink size={11} />
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-zinc-400"><Instagram size={14} /></span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] uppercase text-zinc-400">Instagram</p>
-                  <span className="text-sm italic text-zinc-300">{"\u2014"}</span>
-                </div>
-              </div>
-            )}
+            <InfoField icon={<Linkedin size={14} />} label="LinkedIn" value={linkedinUrl} field="linkedin_url" onSave={saveField} linkify />
+            <InfoField icon={<Instagram size={14} />} label="Instagram" value={instagramUrl} field="instagram_url" onSave={saveField} linkify />
           </div>
         </div>
 
@@ -501,26 +460,135 @@ function InfoField({
   value,
   field,
   onSave,
+  linkify,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   field: string;
   onSave: (field: string, value: string) => void;
+  linkify?: boolean;
 }) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-zinc-400">{icon}</span>
       <div className="min-w-0 flex-1">
         <p className="text-[10px] uppercase text-zinc-400">{label}</p>
-        <EditableText
-          value={value}
-          field={field}
-          onSave={onSave}
-          className="text-sm text-zinc-700"
-          placeholder={label}
-        />
+        {linkify ? (
+          <LinkableEditableText
+            value={value}
+            field={field}
+            onSave={onSave}
+            className="text-sm text-zinc-700"
+            placeholder={label}
+          />
+        ) : (
+          <EditableText
+            value={value}
+            field={field}
+            onSave={onSave}
+            className="text-sm text-zinc-700"
+            placeholder={label}
+          />
+        )}
       </div>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Linkable editable text — shows URL as link, double-click to edit  */
+/* ------------------------------------------------------------------ */
+
+function LinkableEditableText({
+  value,
+  field,
+  onSave,
+  className = "",
+  placeholder = "\u2014",
+}: {
+  value: string;
+  field: string;
+  onSave: (field: string, value: string) => void;
+  className?: string;
+  placeholder?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const cancelRef = useRef(false);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  const startEdit = () => {
+    setDraft(value);
+    setEditing(true);
+  };
+
+  const commit = () => {
+    setEditing(false);
+    if (draft.trim() !== value) {
+      onSave(field, draft.trim());
+    }
+  };
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onFocus={(e) => e.target.select()}
+        onBlur={() => {
+          if (cancelRef.current) {
+            cancelRef.current = false;
+            return;
+          }
+          commit();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+          if (e.key === "Escape") {
+            cancelRef.current = true;
+            setDraft(value);
+            setEditing(false);
+          }
+        }}
+        className={`w-full rounded border border-indigo-300 bg-white px-1.5 py-0.5 outline-none ${className}`}
+        placeholder="Paste URL..."
+      />
+    );
+  }
+
+  if (value) {
+    return (
+      <span
+        onDoubleClick={startEdit}
+        className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors hover:bg-zinc-100 ${className}`}
+        title="Double-click to edit"
+      >
+        <a
+          href={value}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="truncate text-blue-600 hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {value.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}
+        </a>
+        <ExternalLink size={11} className="shrink-0 text-zinc-400" />
+      </span>
+    );
+  }
+
+  return (
+    <span
+      onDoubleClick={startEdit}
+      className={`inline-block cursor-default rounded px-1.5 py-0.5 transition-colors hover:bg-zinc-100 ${className}`}
+      title="Double-click to edit"
+    >
+      <span className="italic text-zinc-300">{placeholder}</span>
+    </span>
   );
 }

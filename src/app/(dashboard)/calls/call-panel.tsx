@@ -124,13 +124,18 @@ export function CallPanel({ contact, loading, callLogs, onAction, onBack }: Call
     ? (researchData.personal_hooks as string[])
     : [];
 
-  // Extract LinkedIn URL from research data (hydration format)
+  // Resolve LinkedIn/Instagram: prefer contact record, fall back to hydration data
   const hydration = researchData.hydration as Record<string, unknown> | undefined;
   const contactInfoData = hydration?.contact_info as Record<string, unknown> | undefined;
   const linkedinObj = contactInfoData?.linkedin as Record<string, unknown> | undefined;
-  const linkedinUrl = typeof linkedinObj?.value === "string" ? linkedinObj.value : null;
-  const instagramObj = contactInfoData?.instagram as Record<string, unknown> | undefined;
-  const instagramUrl = typeof instagramObj?.value === "string" ? instagramObj.value : null;
+  const hydrationLinkedin = typeof linkedinObj?.value === "string" ? linkedinObj.value : null;
+  const social = contactInfoData?.social as Array<Record<string, unknown>> | undefined;
+  const igEntry = Array.isArray(social) ? social.find((s) => s.platform === "instagram") : undefined;
+  const hydrationInstagram = igEntry
+    ? (typeof igEntry.url === "string" ? igEntry.url : typeof igEntry.handle === "string" ? (igEntry.handle.startsWith("http") ? igEntry.handle : `https://instagram.com/${(igEntry.handle as string).replace(/^@/, "")}`) : null)
+    : null;
+  const linkedinUrl = contact.linkedin_url || hydrationLinkedin || null;
+  const instagramUrl = contact.instagram_url || hydrationInstagram || null;
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
@@ -189,10 +194,10 @@ export function CallPanel({ contact, loading, callLogs, onAction, onBack }: Call
               href={linkedinUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-700 transition-colors hover:bg-sky-100"
+              className="flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-700 transition-colors hover:bg-sky-100 truncate"
             >
-              <Linkedin size={16} />
-              LinkedIn
+              <Linkedin size={16} className="shrink-0" />
+              <span className="truncate">{linkedinUrl.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}</span>
             </a>
           )}
           {instagramUrl && (
@@ -200,10 +205,10 @@ export function CallPanel({ contact, loading, callLogs, onAction, onBack }: Call
               href={instagramUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 rounded-lg border border-pink-200 bg-pink-50 px-4 py-2 text-sm font-medium text-pink-700 transition-colors hover:bg-pink-100"
+              className="flex items-center gap-2 rounded-lg border border-pink-200 bg-pink-50 px-4 py-2 text-sm font-medium text-pink-700 transition-colors hover:bg-pink-100 truncate"
             >
-              <Instagram size={16} />
-              Instagram
+              <Instagram size={16} className="shrink-0" />
+              <span className="truncate">{instagramUrl.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}</span>
             </a>
           )}
         </div>

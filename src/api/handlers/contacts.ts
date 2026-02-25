@@ -141,6 +141,8 @@ export async function updateContact(
     "phone",
     "title",
     "company",
+    "linkedin_url",
+    "instagram_url",
     "status",
     "disposition",
     "quality_score",

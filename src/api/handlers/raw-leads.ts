@@ -451,15 +451,52 @@ export async function promoteRawLead(
       if (existing) contact = existing;
     }
 
+    // Extract social URLs from research data for the contact record
+    let linkedinUrl: string | null = null;
+    let instagramUrl: string | null = null;
+    const rd = opts?.research?.research_data;
+    if (rd) {
+      const hyd = rd.hydration as Record<string, unknown> | undefined;
+      const ci = hyd?.contact_info as Record<string, unknown> | undefined;
+      const li = ci?.linkedin as Record<string, unknown> | undefined;
+      if (typeof li?.value === "string") linkedinUrl = li.value;
+      const social = ci?.social as Array<Record<string, unknown>> | undefined;
+      if (Array.isArray(social)) {
+        const ig = social.find((s) => s.platform === "instagram");
+        if (ig) {
+          const handle = typeof ig.handle === "string" ? ig.handle : null;
+          const url = typeof ig.url === "string" ? ig.url : null;
+          instagramUrl = url || (handle && !handle.startsWith("http") ? `https://instagram.com/${handle.replace(/^@/, "")}` : handle) || null;
+        }
+      }
+    }
+
     if (!contact) {
       // Promoted contacts start as "researched" — they've been hydrated before promotion
       const { data: newContact, error: insertErr } = await db
         .from("contacts")
-        .insert({ first_name, last_name, email, title, company, status: "researched" })
+        .insert({
+          first_name, last_name, email, title, company, status: "researched",
+          linkedin_url: linkedinUrl, instagram_url: instagramUrl,
+        })
         .select()
         .single();
       if (insertErr) return { status: 500, body: { error: insertErr.message } };
       contact = newContact;
+    } else {
+      // Backfill social URLs on existing contact if missing
+      const backfill: Record<string, unknown> = {};
+      if (linkedinUrl && !contact.linkedin_url) backfill.linkedin_url = linkedinUrl;
+      if (instagramUrl && !contact.instagram_url) backfill.instagram_url = instagramUrl;
+      if (Object.keys(backfill).length > 0) {
+        const { data: updated } = await db
+          .from("contacts")
+          .update(backfill)
+          .eq("id", contact.id)
+          .select()
+          .single();
+        if (updated) contact = updated;
+      }
     }
 
     // 4. Create zoominfo_leads row
