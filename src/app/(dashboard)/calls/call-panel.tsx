@@ -28,6 +28,7 @@ import { type ContactDetail } from "@/lib/api-client";
 import type { CallLog } from "@/lib/types";
 import { Skeleton } from "@/components/skeleton";
 import { JsonDisplay } from "@/components/json-display";
+import { HydrationDisplay } from "@/components/hydration-display";
 
 const typeIcons: Record<string, typeof BookOpen> = {
   blog: BookOpen,
@@ -137,6 +138,10 @@ export function CallPanel({ contact, loading, callLogs, onAction, onBack }: Call
   const linkedinUrl = contact.linkedin_url || hydrationLinkedin || null;
   const instagramUrl = contact.instagram_url || hydrationInstagram || null;
 
+  // Extract clinic services
+  const clinicProfile = hydration?.clinic_profile as Record<string, unknown> | undefined;
+  const clinicServices = Array.isArray(clinicProfile?.services) ? (clinicProfile.services as string[]) : [];
+
   return (
     <div className="flex flex-1 flex-col min-h-0">
       <div className="flex-1 space-y-5 overflow-y-auto p-4 md:p-6">
@@ -222,6 +227,25 @@ export function CallPanel({ contact, loading, callLogs, onAction, onBack }: Call
             <p className="text-sm leading-relaxed text-blue-900">
               {research.summary}
             </p>
+          </div>
+        ) : null}
+
+        {/* Clinic Services — surfaced from hydration */}
+        {clinicServices.length > 0 ? (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Services
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              {clinicServices.map((service, i) => (
+                <span
+                  key={i}
+                  className="rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-medium text-teal-700"
+                >
+                  {String(service)}
+                </span>
+              ))}
+            </div>
           </div>
         ) : null}
 
@@ -377,13 +401,24 @@ export function CallPanel({ contact, loading, callLogs, onAction, onBack }: Call
           </div>
         ) : null}
 
-        {/* Additional Research Data */}
+        {/* Hydration Research — collapsible cards */}
+        {hydration && Object.keys(hydration).length > 0 ? (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Research Details
+            </h3>
+            <HydrationDisplay hydration={hydration} />
+          </div>
+        ) : null}
+
+        {/* Additional Research Data (non-hydration extras) */}
         {(() => {
           const known = new Set([
             "professional_background",
             "content_appearances",
             "contact_info_found",
             "personal_hooks",
+            "hydration",
           ]);
           const extra = Object.fromEntries(
             Object.entries(researchData).filter(([k]) => !known.has(k))

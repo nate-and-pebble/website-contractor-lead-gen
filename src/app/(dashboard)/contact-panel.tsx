@@ -23,6 +23,7 @@ import {
 import { type ContactDetail, patchContact } from "@/lib/api-client";
 import { useToast } from "@/components/toast-provider";
 import { JsonDisplay } from "@/components/json-display";
+import { HydrationDisplay } from "@/components/hydration-display";
 import { Skeleton } from "@/components/skeleton";
 
 const typeIcons: Record<string, typeof BookOpen> = {
@@ -124,6 +125,10 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate, onBa
     : null;
   const linkedinUrl = contact.linkedin_url || hydrationLinkedin || "";
   const instagramUrl = contact.instagram_url || hydrationInstagram || "";
+
+  // Extract clinic services
+  const clinicProfile = hydration?.clinic_profile as Record<string, unknown> | undefined;
+  const clinicServices = Array.isArray(clinicProfile?.services) ? (clinicProfile.services as string[]) : [];
 
   const copyEmailResearchPrompt = async () => {
     const lines: string[] = [];
@@ -254,6 +259,25 @@ CONTACT PROFILE
             <InfoField icon={<Instagram size={14} />} label="Instagram" value={instagramUrl} field="instagram_url" onSave={saveField} linkify />
           </div>
         </div>
+
+        {/* Clinic Services — surfaced from hydration for quick scan */}
+        {clinicServices.length > 0 ? (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Services
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              {clinicServices.map((service, i) => (
+                <span
+                  key={i}
+                  className="rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-medium text-teal-700"
+                >
+                  {String(service)}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {/* Research Summary */}
         {research?.summary ? (
@@ -389,13 +413,24 @@ CONTACT PROFILE
           </div>
         ) : null}
 
-        {/* Additional Research Data */}
+        {/* Hydration Research — collapsible cards */}
+        {hydration && Object.keys(hydration).length > 0 ? (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Research Details
+            </h3>
+            <HydrationDisplay hydration={hydration} />
+          </div>
+        ) : null}
+
+        {/* Additional Research Data (non-hydration extras) */}
         {(() => {
           const known = new Set([
             "professional_background",
             "content_appearances",
             "contact_info_found",
             "personal_hooks",
+            "hydration",
           ]);
           const extra = Object.fromEntries(
             Object.entries(researchData).filter(([k]) => !known.has(k))
