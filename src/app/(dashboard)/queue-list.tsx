@@ -1,7 +1,7 @@
 "use client";
 
 import type { ContactListItem } from "@/lib/api-client";
-import { Inbox } from "lucide-react";
+import { Inbox, Mail, Phone, Linkedin, Instagram } from "lucide-react";
 
 interface QueueListProps {
   contacts: ContactListItem[];
@@ -48,9 +48,17 @@ export function QueueList({ contacts, selectedId, onSelect }: QueueListProps) {
                   : "hover:bg-zinc-50"
               }`}
             >
-              <p className="truncate text-sm font-medium text-zinc-900">
-                {c.first_name} {c.last_name}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-sm font-medium text-zinc-900">
+                  {c.first_name} {c.last_name}
+                </p>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Mail size={12} className={c.email ? "text-blue-500" : "text-zinc-200"} />
+                  <Phone size={12} className={c.phone ? "text-green-500" : "text-zinc-200"} />
+                  <Linkedin size={12} className={c.linkedin_url ? "text-[#0A66C2]" : "text-zinc-200"} />
+                  <Instagram size={12} className={c.instagram_url ? "text-[#E1306C]" : "text-zinc-200"} />
+                </div>
+              </div>
               <p className="truncate text-xs text-zinc-500">
                 {[c.title, c.company].filter(Boolean).join(" at ") || "\u2014"}
               </p>

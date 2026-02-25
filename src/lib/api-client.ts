@@ -92,6 +92,17 @@ export function patchContact(id: string, data: Record<string, unknown>): Promise
   });
 }
 
+export interface BackfillResult {
+  updates: Record<string, Record<string, string>>;
+}
+
+export function backfillContactInfo(contactIds: string[]): Promise<BackfillResult> {
+  return apiFetch<BackfillResult>("/api/contacts/backfill-info", {
+    method: "POST",
+    body: JSON.stringify({ contact_ids: contactIds }),
+  });
+}
+
 // ---- Call Logs ----
 
 export interface CallLogsResponse {

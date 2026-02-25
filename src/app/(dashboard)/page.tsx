@@ -8,6 +8,7 @@ import {
   fetchContacts,
   fetchContact,
   patchContact,
+  backfillContactInfo,
   type StatsResponse,
   type ContactListItem,
   type ContactDetail,
@@ -67,6 +68,31 @@ export default function DashboardPage() {
       .catch(() => toast("Failed to load contact", "error"))
       .finally(() => setDetailLoading(false));
   }, [selectedId, toast]);
+
+  // Lazy backfill — after queue loads, check for contacts missing contact info
+  // fields and try to populate them from research hydration data
+  useEffect(() => {
+    if (queue.length === 0) return;
+    const needsBackfill = queue.filter(
+      (c) => !c.email || !c.phone || !c.linkedin_url || !c.instagram_url
+    );
+    if (needsBackfill.length === 0) return;
+
+    backfillContactInfo(needsBackfill.map((c) => c.id))
+      .then((result) => {
+        const updates = result.updates;
+        if (Object.keys(updates).length === 0) return;
+        // Patch queue state so icons flip from grey → colored
+        setQueue((prev) =>
+          prev.map((c) =>
+            updates[c.id] ? { ...c, ...updates[c.id] } : c
+          )
+        );
+      })
+      .catch(() => {
+        // Silent — backfill is best-effort
+      });
+  }, [queue.length]); // Only run when queue size changes (initial load / after action)
 
   // Inline edit handler — updates both detail and queue optimistically
   const handleContactUpdate = useCallback(
