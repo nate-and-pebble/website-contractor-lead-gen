@@ -144,12 +144,19 @@ export async function listRawLeads(params: {
   return { status: 200, body: { leads: data, total: count ?? 0 } };
 }
 
+/** Normalize empty strings to null for fields used in unique constraints */
+function emptyToNull(val: unknown): string | null {
+  if (typeof val === "string" && val.trim() !== "") return val;
+  return null;
+}
+
 export async function createRawLead(
   body: Record<string, unknown>
 ): Promise<HandlerResult> {
   const db = createServerClient();
-  const { source, source_id, source_url, name, email, title, company, raw_data, found_via } =
+  const { source, source_url, name, email, title, company, raw_data, found_via } =
     body;
+  const sourceId = emptyToNull(body.source_id);
 
   if (!source || typeof source !== "string") {
     return { status: 400, body: { error: "source is required" } };
@@ -158,7 +165,7 @@ export async function createRawLead(
   // Cascade dedup: source+source_id → name+company → email
   const existing = await findExistingRawLead(db, {
     source,
-    source_id: source_id as string | undefined,
+    source_id: sourceId,
     name: name as string | undefined,
     company: company as string | undefined,
     email: email as string | undefined,
@@ -166,7 +173,7 @@ export async function createRawLead(
 
   if (existing) {
     const result = await upsertExisting(db, existing, {
-      source_id, source_url, name, email, title, company, raw_data, found_via,
+      source_id: sourceId, source_url, name, email, title, company, raw_data, found_via,
     });
     if ("error" in result) return { status: 500, body: { error: result.error } };
     return {
@@ -179,19 +186,25 @@ export async function createRawLead(
     .from("raw_leads")
     .insert({
       source,
-      source_id: (source_id as string) ?? null,
-      source_url: (source_url as string) ?? null,
-      name: (name as string) ?? null,
-      email: (email as string) ?? null,
-      title: (title as string) ?? null,
-      company: (company as string) ?? null,
+      source_id: sourceId,
+      source_url: emptyToNull(source_url),
+      name: emptyToNull(name),
+      email: emptyToNull(email),
+      title: emptyToNull(title),
+      company: emptyToNull(company),
       raw_data: raw_data ?? {},
-      found_via: (found_via as string) ?? null,
+      found_via: emptyToNull(found_via),
     })
     .select()
     .single();
 
-  if (error) return { status: 500, body: { error: error.message } };
+  if (error) {
+    // Handle unique constraint violation as 409 instead of 500
+    if (error.code === "23505") {
+      return { status: 409, body: { error: "Duplicate raw lead", detail: error.message } };
+    }
+    return { status: 500, body: { error: error.message } };
+  }
   return { status: 201, body: { ...data, existed: false } };
 }
 
@@ -224,16 +237,17 @@ export async function batchCreateRawLeads(
   // Per-lead cascade dedup + upsert
   for (let i = 0; i < leads.length; i++) {
     const lead = leads[i];
+    const sourceId = emptyToNull(lead.source_id);
     const existing = await findExistingRawLead(db, {
       source: lead.source,
-      source_id: lead.source_id,
+      source_id: sourceId,
       name: lead.name,
       company: lead.company,
       email: lead.email,
     });
 
     if (existing) {
-      const result = await upsertExisting(db, existing, lead);
+      const result = await upsertExisting(db, existing, { ...lead, source_id: sourceId });
       if ("error" in result) return { status: 500, body: { error: result.error } };
       results.push({ ...result.row, existed: true, updated: result.updated, _index: i });
       if (result.updated) updated++;
@@ -241,14 +255,14 @@ export async function batchCreateRawLeads(
     } else {
       toInsert.push({
         source: lead.source,
-        source_id: lead.source_id ?? null,
-        source_url: lead.source_url ?? null,
-        name: lead.name ?? null,
-        email: lead.email ?? null,
-        title: lead.title ?? null,
-        company: lead.company ?? null,
+        source_id: sourceId,
+        source_url: emptyToNull(lead.source_url),
+        name: emptyToNull(lead.name),
+        email: emptyToNull(lead.email),
+        title: emptyToNull(lead.title),
+        company: emptyToNull(lead.company),
         raw_data: lead.raw_data ?? {},
-        found_via: lead.found_via ?? null,
+        found_via: emptyToNull(lead.found_via),
       });
       insertIndices.push(i);
     }
@@ -260,7 +274,12 @@ export async function batchCreateRawLeads(
       .insert(toInsert)
       .select();
 
-    if (error) return { status: 500, body: { error: error.message } };
+    if (error) {
+      if (error.code === "23505") {
+        return { status: 409, body: { error: "Duplicate raw lead in batch", detail: error.message } };
+      }
+      return { status: 500, body: { error: error.message } };
+    }
 
     if (inserted) {
       for (let j = 0; j < inserted.length; j++) {
@@ -388,7 +407,10 @@ const ZOOMINFO_COLUMNS = [
 
 export async function promoteRawLead(
   id: string,
-  platformData?: Record<string, unknown>
+  opts?: {
+    platformData?: Record<string, unknown>;
+    research?: { summary?: string; research_data?: Record<string, unknown> };
+  }
 ): Promise<HandlerResult> {
   const db = createServerClient();
 
@@ -430,9 +452,10 @@ export async function promoteRawLead(
     }
 
     if (!contact) {
+      // Promoted contacts start as "researched" — they've been hydrated before promotion
       const { data: newContact, error: insertErr } = await db
         .from("contacts")
-        .insert({ first_name, last_name, email, title, company })
+        .insert({ first_name, last_name, email, title, company, status: "researched" })
         .select()
         .single();
       if (insertErr) return { status: 500, body: { error: insertErr.message } };
@@ -440,7 +463,7 @@ export async function promoteRawLead(
     }
 
     // 4. Create zoominfo_leads row
-    const pd = platformData || {};
+    const pd = opts?.platformData || {};
     const ziRow: Record<string, unknown> = { contact_id: contact.id };
     for (const col of ZOOMINFO_COLUMNS) {
       ziRow[col] = pd[col] ?? null;
@@ -453,7 +476,28 @@ export async function promoteRawLead(
       .single();
     if (ziErr) return { status: 500, body: { error: ziErr.message } };
 
-    // 5. Update raw_lead → qualified
+    // 5. Store research if provided
+    let research = null;
+    if (opts?.research?.research_data) {
+      const now = new Date().toISOString();
+      const { data: researchRow, error: resErr } = await db
+        .from("contact_research")
+        .upsert(
+          {
+            contact_id: contact.id,
+            summary: opts.research.summary ?? null,
+            research_data: opts.research.research_data,
+            researched_at: now,
+          },
+          { onConflict: "contact_id" }
+        )
+        .select()
+        .single();
+      if (resErr) return { status: 500, body: { error: resErr.message } };
+      research = researchRow;
+    }
+
+    // 6. Update raw_lead → qualified
     const { data: updatedRawLead, error: updateErr } = await db
       .from("raw_leads")
       .update({
@@ -471,6 +515,7 @@ export async function promoteRawLead(
       body: {
         contact,
         zoominfo_lead: zoomInfoLead,
+        research,
         raw_lead: updatedRawLead,
       },
     };

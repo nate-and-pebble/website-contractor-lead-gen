@@ -73,7 +73,7 @@ Valid statuses: `new`, `researched`, `ready`, `booked`, `dead`
 | `sales-engine raw-leads batch --file <path>` | Batch create from JSON file `{ "leads": [...] }` |
 | `sales-engine raw-leads check --source <s> --source-id <id>` | Check if lead exists |
 | `sales-engine raw-leads update <id> [--status <s>] [--rejection-reason <text>]` | Update raw lead |
-| `sales-engine raw-leads promote <id> [--platform-data <json>]` | Promote to contact |
+| `sales-engine raw-leads promote <id> [--platform-data <json>] [--summary <text>] [--research-data <json>]` | Promote to contact (as "researched") with optional research |
 
 Valid statuses: `pending`, `qualified`, `rejected`
 
@@ -110,16 +110,18 @@ Valid statuses: `pending`, `qualified`, `rejected`
 
 ```
 Raw Lead (pending → qualified → rejected)
-    ↓ promote
-Contact: new → researched → ready → booked → dead
-                              ↓
-                    disposition: "call" | "campaign"
-                              ↓
-                  Call List (/calls) or Campaign (/campaign)
-                              ↓
-                    booked → Pipeline (/pipeline)
-                    ball_in_court: mine | theirs | scheduled
+    ↓ promote (with research data)
+Contact: researched → ready → booked → dead
+                        ↓
+              disposition: "call" | "campaign"
+                        ↓
+            Call List (/calls) or Campaign (/campaign)
+                        ↓
+              booked → Pipeline (/pipeline)
+              ball_in_court: mine | theirs | scheduled
 ```
+
+Note: Promoted contacts skip "new" and start as "researched" since they're hydrated before promotion.
 
 ## DB Tables
 
@@ -131,7 +133,7 @@ Contact: new → researched → ready → booked → dead
 
 ## Key Contact Fields
 
-- `status`: new, researched, ready, booked, dead
+- `status`: new (legacy), researched, ready, booked, dead — promoted contacts start as "researched"
 - `disposition`: call, campaign, or null
 - `follow_up_at`: ISO timestamp for snooze/scheduling
 - `ball_in_court`: mine, theirs, scheduled (for booked contacts)

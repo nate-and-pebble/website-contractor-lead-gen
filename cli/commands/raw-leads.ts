@@ -85,12 +85,22 @@ export function registerRawLeadsCommands(program: Command) {
     });
 
   rl.command("promote <id>")
-    .description("Promote a raw lead to a contact")
+    .description("Promote a raw lead to a contact (created as 'researched')")
     .option("--platform-data <json>", "ZoomInfo platform data as JSON string")
-    .action(async (id: string, opts: { platformData?: string }) => {
+    .option("--summary <text>", "Research summary (one-line)")
+    .option("--research-data <json>", "Research data as JSON string")
+    .action(async (id: string, opts: { platformData?: string; summary?: string; researchData?: string }) => {
       const body: Record<string, unknown> = {};
       if (opts.platformData) {
         body.platform_data = parseJsonFlag(opts.platformData, "--platform-data");
+      }
+      if (opts.summary || opts.researchData) {
+        body.research = {
+          summary: opts.summary ?? null,
+          research_data: opts.researchData
+            ? parseJsonFlag(opts.researchData, "--research-data")
+            : undefined,
+        };
       }
       await apiRequest({ method: "POST", path: `/api/raw-leads/${id}/promote`, body });
     });

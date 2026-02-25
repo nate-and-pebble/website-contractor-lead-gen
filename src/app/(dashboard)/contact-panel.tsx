@@ -13,10 +13,24 @@ import {
   Trash2,
   Loader2,
   ArrowLeft,
+  BookOpen,
+  Globe,
+  Mic,
+  Video,
+  FileText,
 } from "lucide-react";
 import { type ContactDetail, patchContact } from "@/lib/api-client";
 import { useToast } from "@/components/toast-provider";
+import { JsonDisplay } from "@/components/json-display";
 import { Skeleton } from "@/components/skeleton";
+
+const typeIcons: Record<string, typeof BookOpen> = {
+  blog: BookOpen,
+  podcast: Mic,
+  video: Video,
+  article: FileText,
+  website: Globe,
+};
 
 interface ContactPanelProps {
   contact: ContactDetail | null;
@@ -170,13 +184,108 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate, onBa
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
               Background
             </h3>
-            <p className="text-sm leading-relaxed text-zinc-700">
-              {typeof researchData.professional_background === "string"
-                ? researchData.professional_background
-                : JSON.stringify(researchData.professional_background)}
-            </p>
+            <div className="rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 text-sm">
+              <JsonDisplay data={researchData.professional_background} />
+            </div>
           </div>
         ) : null}
+
+        {/* Content & Appearances */}
+        {Array.isArray(researchData.content_appearances) &&
+        researchData.content_appearances.length > 0 ? (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Content & Appearances
+            </h3>
+            <div className="space-y-2">
+              {(researchData.content_appearances as Array<Record<string, unknown>>).map(
+                (item, i) => {
+                  const IconComponent =
+                    typeIcons[String(item.type ?? "")] ?? FileText;
+                  return (
+                    <div
+                      key={i}
+                      className="flex gap-2.5 rounded-lg border border-zinc-100 bg-zinc-50/50 p-2.5"
+                    >
+                      <IconComponent
+                        size={16}
+                        className="mt-0.5 shrink-0 text-zinc-400"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          {item.source_url ? (
+                            <a
+                              href={String(item.source_url)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm font-medium text-blue-600 hover:underline"
+                            >
+                              {String(item.title ?? "Untitled")}
+                              <ExternalLink
+                                size={11}
+                                className="ml-1 inline-block"
+                              />
+                            </a>
+                          ) : (
+                            <span className="text-sm font-medium text-zinc-800">
+                              {String(item.title ?? "Untitled")}
+                            </span>
+                          )}
+                        </div>
+                        {item.date != null ? (
+                          <p className="text-xs text-zinc-400">
+                            {String(item.date)}
+                          </p>
+                        ) : null}
+                        {item.key_takeaway != null ? (
+                          <p className="mt-0.5 text-xs leading-relaxed text-zinc-600">
+                            {String(item.key_takeaway)}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                }
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Contact Info Found */}
+        {researchData.contact_info_found != null ? (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Contact Info Found
+            </h3>
+            <div className="rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 text-sm">
+              <JsonDisplay data={researchData.contact_info_found} />
+            </div>
+          </div>
+        ) : null}
+
+        {/* Additional Research Data */}
+        {(() => {
+          const known = new Set([
+            "professional_background",
+            "content_appearances",
+            "contact_info_found",
+            "personal_hooks",
+          ]);
+          const extra = Object.fromEntries(
+            Object.entries(researchData).filter(([k]) => !known.has(k))
+          );
+          if (Object.keys(extra).length === 0) return null;
+          return (
+            <div>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Additional Research
+              </h3>
+              <div className="rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 text-sm">
+                <JsonDisplay data={extra} />
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Contact Info */}
         <div>
