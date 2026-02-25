@@ -18,6 +18,7 @@ import {
   FileText,
   Linkedin,
   Instagram,
+  Sparkles,
 } from "lucide-react";
 import { type ContactDetail, patchContact } from "@/lib/api-client";
 import { useToast } from "@/components/toast-provider";
@@ -124,6 +125,72 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate, onBa
   const linkedinUrl = contact.linkedin_url || hydrationLinkedin || "";
   const instagramUrl = contact.instagram_url || hydrationInstagram || "";
 
+  const copyEmailResearchPrompt = async () => {
+    const lines: string[] = [];
+
+    // Prompt
+    lines.push(`Your goal is to find their real work and/or personal email.
+
+Process:
+1. Perform an EXHAUSTIVE web search to find any email clearly linked to this person. (Don't stop early; keep digging until you're confident it's not publicly available.)
+2. If you find one, verify the linkage and cite the exact source. If not, find 2 or so coworker/staff emails from the same business to establish the company's email pattern.
+3. Use that pattern to infer the most likely email for the target person.
+4. Rank results by confidence.
+
+Guidelines:
+- Prefer real staff inboxes over generic addresses.
+- Don't guess until you have pattern evidence.
+- Be explicit about how conclusions were reached.
+- Keep output concise and logical.
+
+Output format: Found Emails | Pattern Evidence | Best Guess | Fallbacks (optional)
+
+---
+CONTACT PROFILE
+---`);
+
+    // Basic info
+    lines.push(`Name: ${contact.first_name} ${contact.last_name}`);
+    if (contact.title) lines.push(`Title: ${contact.title}`);
+    if (contact.company) lines.push(`Company: ${contact.company}`);
+    if (contact.email) lines.push(`Current Email (may be wrong/generic): ${contact.email}`);
+    if (contact.phone) lines.push(`Phone: ${contact.phone}`);
+    if (linkedinUrl) lines.push(`LinkedIn: ${linkedinUrl}`);
+    if (instagramUrl) lines.push(`Instagram: ${instagramUrl}`);
+
+    // Research summary
+    if (research?.summary) {
+      lines.push(`\n--- RESEARCH SUMMARY ---`);
+      lines.push(research.summary);
+    }
+
+    // Research data
+    if (Object.keys(researchData).length > 0) {
+      lines.push(`\n--- RESEARCH DATA ---`);
+      lines.push(JSON.stringify(researchData, null, 2));
+    }
+
+    // Zoominfo data
+    if (contact.zoominfo_lead) {
+      lines.push(`\n--- ZOOMINFO DATA ---`);
+      const zi = contact.zoominfo_lead;
+      if (zi.direct_email) lines.push(`ZoomInfo Email: ${zi.direct_email}`);
+      if (zi.direct_phone) lines.push(`ZoomInfo Phone: ${zi.direct_phone}`);
+      if (zi.company_name) lines.push(`ZoomInfo Company: ${zi.company_name}`);
+      if (zi.company_industry) lines.push(`Industry: ${zi.company_industry}`);
+      if (zi.profile_url) lines.push(`ZoomInfo Profile: ${zi.profile_url}`);
+    }
+
+    // Notes
+    if (contact.notes) {
+      lines.push(`\n--- NOTES ---`);
+      lines.push(contact.notes);
+    }
+
+    await navigator.clipboard.writeText(lines.join("\n"));
+    toast("AI email research prompt copied to clipboard");
+  };
+
   return (
     <div className="flex flex-1 flex-col min-h-0">
       <div className="flex-1 space-y-5 overflow-y-auto p-4 md:p-6">
@@ -165,7 +232,18 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate, onBa
             Contact
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <InfoField icon={<Mail size={14} />} label="Email" value={contact.email ?? ""} field="email" onSave={saveField} />
+            <div className="flex items-center gap-1">
+              <div className="min-w-0 flex-1">
+                <InfoField icon={<Mail size={14} />} label="Email" value={contact.email ?? ""} field="email" onSave={saveField} />
+              </div>
+              <button
+                onClick={copyEmailResearchPrompt}
+                title="Copy AI email research prompt"
+                className="shrink-0 rounded-md border border-zinc-200 p-1.5 text-zinc-400 transition-colors hover:border-violet-300 hover:bg-violet-50 hover:text-violet-600"
+              >
+                <Sparkles size={12} />
+              </button>
+            </div>
             <InfoField icon={<Phone size={14} />} label="Phone" value={contact.phone ?? ""} field="phone" onSave={saveField} />
             <InfoField icon={<Linkedin size={14} />} label="LinkedIn" value={linkedinUrl} field="linkedin_url" onSave={saveField} linkify />
             <InfoField icon={<Instagram size={14} />} label="Instagram" value={instagramUrl} field="instagram_url" onSave={saveField} linkify />
