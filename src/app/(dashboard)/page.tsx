@@ -187,7 +187,6 @@ function FunnelStrip({
 }) {
   const stages = [
     { label: "Incoming", count: stats.raw_leads.pending, color: "bg-amber-500", href: "/raw-leads?status=pending" },
-    { label: "New", count: stats.contacts.new, color: "bg-blue-500", href: "/contacts?status=new" },
     { label: "Researched", count: stats.contacts.researched, color: "bg-indigo-500", href: "/contacts?status=researched" },
     { label: "Ready", count: stats.contacts.ready, color: "bg-green-500", href: "/contacts?status=ready" },
     { label: "Booked", count: stats.contacts.booked, color: "bg-emerald-500", href: "/pipeline" },
