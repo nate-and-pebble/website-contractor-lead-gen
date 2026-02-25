@@ -83,7 +83,7 @@ export default function PipelinePage() {
   if (loading) {
     return (
       <div className="flex h-full flex-col">
-        <div className="border-b border-zinc-200 bg-white px-6 py-5">
+        <div className="border-b border-zinc-200 bg-white px-4 md:px-6 py-5">
           <Skeleton className="h-7 w-40" />
           <Skeleton className="mt-1 h-4 w-56" />
         </div>
@@ -109,7 +109,7 @@ export default function PipelinePage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-zinc-200 bg-white px-6 py-5">
+      <div className="border-b border-zinc-200 bg-white px-4 md:px-6 py-5">
         <h1 className="text-2xl font-bold text-zinc-900">Pipeline</h1>
         <p className="mt-0.5 text-sm text-zinc-500">
           {contacts.length} active deal{contacts.length !== 1 ? "s" : ""} in progress
@@ -128,7 +128,7 @@ export default function PipelinePage() {
           </p>
         </div>
       ) : (
-        <div className="flex flex-1 gap-4 overflow-x-auto p-6 min-h-0">
+        <div className="flex flex-1 gap-4 overflow-x-auto p-4 md:p-6 min-h-0">
           <PipelineColumn
             title="My Turn"
             subtitle="You need to take action"
@@ -209,7 +209,7 @@ function PipelineColumn({
   const c = colorMap[color];
 
   return (
-    <div className="flex min-w-[280px] flex-1 flex-col">
+    <div className="flex min-w-[260px] md:min-w-[280px] flex-1 flex-col">
       <div className="mb-3 flex items-center gap-2">
         <span className={`h-2.5 w-2.5 rounded-full ${c.dot}`} />
         <h2 className="text-sm font-semibold text-zinc-800">{title}</h2>

@@ -137,12 +137,12 @@ export default function DashboardPage() {
           <Skeleton className="h-8 w-full rounded-lg" />
         </div>
         <div className="flex flex-1">
-          <div className="w-80 shrink-0 space-y-3 border-r border-zinc-200 p-4">
+          <div className="w-full md:w-80 shrink-0 space-y-3 border-r border-zinc-200 p-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-16 rounded-lg" />
             ))}
           </div>
-          <div className="flex-1 space-y-4 p-6">
+          <div className="hidden md:block flex-1 space-y-4 p-6">
             <Skeleton className="h-8 w-48" />
             <Skeleton className="h-24 rounded-lg" />
             <Skeleton className="h-40 rounded-lg" />
@@ -157,17 +157,22 @@ export default function DashboardPage() {
       {stats && <FunnelStrip stats={stats} queueCount={queueTotal} />}
 
       <div className="flex flex-1 min-h-0">
-        <QueueList
-          contacts={queue}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-        />
-        <ContactPanel
-          contact={detail}
-          loading={detailLoading}
-          onAction={handleAction}
-          onContactUpdate={handleContactUpdate}
-        />
+        <div className={`${selectedId ? "hidden md:contents" : "contents"}`}>
+          <QueueList
+            contacts={queue}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
+        </div>
+        <div className={`${selectedId ? "contents" : "hidden md:contents"}`}>
+          <ContactPanel
+            contact={detail}
+            loading={detailLoading}
+            onAction={handleAction}
+            onContactUpdate={handleContactUpdate}
+            onBack={() => setSelectedId(null)}
+          />
+        </div>
       </div>
     </div>
   );
@@ -191,7 +196,7 @@ function FunnelStrip({
   const dropped = stats.raw_leads.rejected + stats.contacts.dead;
 
   return (
-    <div className="flex items-center gap-1 border-b border-zinc-200 bg-zinc-50 px-6 py-3">
+    <div className="flex items-center gap-1 border-b border-zinc-200 bg-zinc-50 px-3 md:px-6 py-3 overflow-x-auto">
       <span className="mr-3 text-xs font-medium text-zinc-400">Pipeline</span>
       {stages.map((s, i) => (
         <div key={s.label} className="flex items-center">

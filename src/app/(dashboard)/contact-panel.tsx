@@ -12,6 +12,7 @@ import {
   PhoneCall,
   Trash2,
   Loader2,
+  ArrowLeft,
 } from "lucide-react";
 import { type ContactDetail, patchContact } from "@/lib/api-client";
 import { useToast } from "@/components/toast-provider";
@@ -22,9 +23,10 @@ interface ContactPanelProps {
   loading: boolean;
   onAction: (action: "campaign" | "call" | "reject") => void;
   onContactUpdate: (contactId: string, updates: Record<string, unknown>) => void;
+  onBack?: () => void;
 }
 
-export function ContactPanel({ contact, loading, onAction, onContactUpdate }: ContactPanelProps) {
+export function ContactPanel({ contact, loading, onAction, onContactUpdate, onBack }: ContactPanelProps) {
   const { toast } = useToast();
   const [notes, setNotes] = useState("");
   const [acting, setActing] = useState<string | null>(null);
@@ -97,7 +99,18 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate }: Co
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
-      <div className="flex-1 space-y-5 overflow-y-auto p-6">
+      <div className="flex-1 space-y-5 overflow-y-auto p-4 md:p-6">
+        {/* Mobile back button */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 md:hidden"
+          >
+            <ArrowLeft size={16} />
+            Back to queue
+          </button>
+        )}
+
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -170,7 +183,7 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate }: Co
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
             Contact
           </h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <InfoField icon={<Mail size={14} />} label="Email" value={contact.email ?? ""} field="email" onSave={saveField} />
             <InfoField icon={<Phone size={14} />} label="Phone" value={contact.phone ?? ""} field="phone" onSave={saveField} />
           </div>
@@ -193,7 +206,7 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate }: Co
       </div>
 
       {/* Action bar — sticky bottom */}
-      <div className="flex items-center gap-3 border-t border-zinc-200 bg-white px-6 py-4">
+      <div className="flex items-center gap-2 md:gap-3 border-t border-zinc-200 bg-white px-4 md:px-6 py-4">
         <button
           onClick={() => handleAction("campaign")}
           disabled={!!acting}
@@ -204,7 +217,7 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate }: Co
           ) : (
             <Send size={16} />
           )}
-          Enroll in Campaign
+          <span className="hidden sm:inline">Enroll in </span>Campaign
         </button>
         <button
           onClick={() => handleAction("call")}
@@ -216,7 +229,7 @@ export function ContactPanel({ contact, loading, onAction, onContactUpdate }: Co
           ) : (
             <PhoneCall size={16} />
           )}
-          Queue for Call
+          <span className="hidden sm:inline">Queue for </span>Call
         </button>
         <button
           onClick={() => handleAction("reject")}

@@ -3,6 +3,113 @@ import { HandlerResult } from "@/lib/types";
 
 const VALID_STATUSES = ["pending", "qualified", "rejected"];
 
+type Db = ReturnType<typeof createServerClient>;
+
+const MERGEABLE_FIELDS = ["source_id", "source_url", "name", "email", "title", "company", "found_via"];
+
+/**
+ * Build merge updates for upserting into an existing raw lead row.
+ * Text fields: fills in nulls only (don't overwrite existing values).
+ * raw_data: shallow-merges new keys (existing keys preserved).
+ * Returns null if nothing to update.
+ */
+function buildMergeUpdates(
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> | null {
+  const updates: Record<string, unknown> = {};
+
+  for (const field of MERGEABLE_FIELDS) {
+    if (incoming[field] && !existing[field]) {
+      updates[field] = incoming[field];
+    }
+  }
+
+  const incomingData = incoming.raw_data;
+  if (incomingData && typeof incomingData === "object" && Object.keys(incomingData as object).length > 0) {
+    const existingData = (existing.raw_data as Record<string, unknown>) ?? {};
+    const newKeys: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(incomingData as Record<string, unknown>)) {
+      if (!(k in existingData)) {
+        newKeys[k] = v;
+      }
+    }
+    if (Object.keys(newKeys).length > 0) {
+      updates.raw_data = { ...existingData, ...newKeys };
+    }
+  }
+
+  return Object.keys(updates).length > 0 ? updates : null;
+}
+
+/**
+ * Cascade dedup: source+source_id → name+company → email.
+ * Returns the first matching raw_lead row, or null.
+ */
+async function findExistingRawLead(
+  db: Db,
+  lead: { source: string; source_id?: string | null; name?: string | null; company?: string | null; email?: string | null },
+): Promise<Record<string, unknown> | null> {
+  // 1. source + source_id (unique constraint)
+  if (lead.source_id) {
+    const { data } = await db
+      .from("raw_leads")
+      .select("*")
+      .eq("source", lead.source)
+      .eq("source_id", lead.source_id)
+      .maybeSingle();
+    if (data) return data;
+  }
+
+  // 2. name + company (case-insensitive, both required)
+  if (lead.name && lead.company) {
+    const { data } = await db
+      .from("raw_leads")
+      .select("*")
+      .ilike("name", lead.name)
+      .ilike("company", lead.company)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (data && data.length > 0) return data[0];
+  }
+
+  // 3. email (case-insensitive)
+  if (lead.email) {
+    const { data } = await db
+      .from("raw_leads")
+      .select("*")
+      .ilike("email", lead.email)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (data && data.length > 0) return data[0];
+  }
+
+  return null;
+}
+
+/**
+ * Upsert: merge new non-null fields into an existing row.
+ */
+async function upsertExisting(
+  db: Db,
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Promise<{ row: Record<string, unknown>; updated: boolean } | { error: string }> {
+  const updates = buildMergeUpdates(existing, incoming);
+  if (updates) {
+    updates.updated_at = new Date().toISOString();
+    const { data, error } = await db
+      .from("raw_leads")
+      .update(updates)
+      .eq("id", existing.id)
+      .select()
+      .single();
+    if (error) return { error: error.message };
+    return { row: data, updated: true };
+  }
+  return { row: existing, updated: false };
+}
+
 export async function listRawLeads(params: {
   status?: string[];
   source?: string;
@@ -48,18 +155,24 @@ export async function createRawLead(
     return { status: 400, body: { error: "source is required" } };
   }
 
-  // Upsert: check for existing by (source, source_id)
-  if (source_id) {
-    const { data: existing } = await db
-      .from("raw_leads")
-      .select("*")
-      .eq("source", source)
-      .eq("source_id", source_id as string)
-      .maybeSingle();
+  // Cascade dedup: source+source_id → name+company → email
+  const existing = await findExistingRawLead(db, {
+    source,
+    source_id: source_id as string | undefined,
+    name: name as string | undefined,
+    company: company as string | undefined,
+    email: email as string | undefined,
+  });
 
-    if (existing) {
-      return { status: 200, body: { ...existing, existed: true } };
-    }
+  if (existing) {
+    const result = await upsertExisting(db, existing, {
+      source_id, source_url, name, email, title, company, raw_data, found_via,
+    });
+    if ("error" in result) return { status: 500, body: { error: result.error } };
+    return {
+      status: 200,
+      body: { ...result.row, existed: true, updated: result.updated },
+    };
   }
 
   const { data, error } = await db
@@ -101,50 +214,30 @@ export async function batchCreateRawLeads(
     }
   }
 
-  // Collect (source, source_id) pairs for bulk existence check
-  const pairs = leads
-    .filter((l) => l.source_id)
-    .map((l) => ({
-      source: l.source as string,
-      source_id: l.source_id as string,
-    }));
-
-  const existingMap = new Map<string, Record<string, unknown>>();
-
-  if (pairs.length > 0) {
-    const sources = [...new Set(pairs.map((p) => p.source))];
-    const sourceIds = [...new Set(pairs.map((p) => p.source_id))];
-
-    const { data: existingRows } = await db
-      .from("raw_leads")
-      .select("*")
-      .in("source", sources)
-      .in("source_id", sourceIds);
-
-    if (existingRows) {
-      for (const row of existingRows) {
-        existingMap.set(`${row.source}::${row.source_id}`, row);
-      }
-    }
-  }
-
   const results: (Record<string, unknown> & { _index: number })[] = [];
   let created = 0;
   let skipped = 0;
-
+  let updated = 0;
   const toInsert: Record<string, unknown>[] = [];
   const insertIndices: number[] = [];
 
+  // Per-lead cascade dedup + upsert
   for (let i = 0; i < leads.length; i++) {
     const lead = leads[i];
-    const key = lead.source_id
-      ? `${lead.source}::${lead.source_id}`
-      : null;
-    const existing = key ? existingMap.get(key) : null;
+    const existing = await findExistingRawLead(db, {
+      source: lead.source,
+      source_id: lead.source_id,
+      name: lead.name,
+      company: lead.company,
+      email: lead.email,
+    });
 
     if (existing) {
-      results.push({ ...existing, existed: true, _index: i });
-      skipped++;
+      const result = await upsertExisting(db, existing, lead);
+      if ("error" in result) return { status: 500, body: { error: result.error } };
+      results.push({ ...result.row, existed: true, updated: result.updated, _index: i });
+      if (result.updated) updated++;
+      else skipped++;
     } else {
       toInsert.push({
         source: lead.source,
@@ -181,7 +274,7 @@ export async function batchCreateRawLeads(
   results.sort((a, b) => a._index - b._index);
   const cleanResults = results.map(({ _index, ...rest }) => rest);
 
-  return { status: 200, body: { created, skipped, leads: cleanResults } };
+  return { status: 200, body: { created, skipped, updated, leads: cleanResults } };
 }
 
 export async function checkRawLead(

@@ -31,7 +31,7 @@ function formatFollowUp(dateStr: string | null): { label: string; overdue: boole
 export function CampaignQueue({ contacts, selectedId, onSelect }: CampaignQueueProps) {
   if (contacts.length === 0) {
     return (
-      <div className="flex w-80 shrink-0 flex-col items-center justify-center border-r border-zinc-200 bg-white p-8 text-center">
+      <div className="flex w-full md:w-80 shrink-0 flex-col items-center justify-center border-r border-zinc-200 bg-white p-8 text-center">
         <div className="rounded-full bg-green-50 p-3">
           <Mail size={24} className="text-green-500" />
         </div>
@@ -44,7 +44,7 @@ export function CampaignQueue({ contacts, selectedId, onSelect }: CampaignQueueP
   }
 
   return (
-    <div className="flex w-80 shrink-0 flex-col border-r border-zinc-200 bg-white">
+    <div className="flex w-full md:w-80 shrink-0 flex-col border-r border-zinc-200 bg-white">
       <div className="flex-1 overflow-y-auto">
         {contacts.map((c) => {
           const active = c.id === selectedId;

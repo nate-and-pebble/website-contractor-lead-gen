@@ -45,3 +45,9 @@ next-env.d.ts
 
 # CLI config (local machine)
 .ple/
+
+# Playwright MCP debug logs/screenshots
+.playwright-mcp/
+
+# Temp scripts and scratch files
+/tmp/

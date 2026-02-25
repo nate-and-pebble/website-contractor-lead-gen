@@ -16,6 +16,7 @@ import {
   Loader2,
   Clock,
   ArrowRight,
+  ArrowLeft,
 } from "lucide-react";
 import { type ContactDetail } from "@/lib/api-client";
 import type { CallLog } from "@/lib/types";
@@ -28,6 +29,7 @@ interface CampaignPanelProps {
   loading: boolean;
   activityLogs: CallLog[];
   onAction: (outcome: EmailOutcome, opts?: { notes?: string; followUpAt?: string }) => void;
+  onBack?: () => void;
 }
 
 const OUTCOME_LABELS: Record<string, string> = {
@@ -86,7 +88,7 @@ function buildEmailSnippet(contact: ContactDetail): string {
   return snippet;
 }
 
-export function CampaignPanel({ contact, loading, activityLogs, onAction }: CampaignPanelProps) {
+export function CampaignPanel({ contact, loading, activityLogs, onAction, onBack }: CampaignPanelProps) {
   const [acting, setActing] = useState<string | null>(null);
   const [showBookingDate, setShowBookingDate] = useState(false);
   const [showMoveBoard, setShowMoveBoard] = useState(false);
@@ -167,7 +169,18 @@ export function CampaignPanel({ contact, loading, activityLogs, onAction }: Camp
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
-      <div className="flex-1 space-y-5 overflow-y-auto p-6">
+      <div className="flex-1 space-y-5 overflow-y-auto p-4 md:p-6">
+        {/* Mobile back button */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 md:hidden"
+          >
+            <ArrowLeft size={16} />
+            Back to list
+          </button>
+        )}
+
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -187,7 +200,7 @@ export function CampaignPanel({ contact, loading, activityLogs, onAction }: Camp
         </div>
 
         {/* Contact info */}
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-2 md:gap-4">
           {contact.email && (
             <a
               href={`mailto:${contact.email}`}
@@ -346,7 +359,7 @@ export function CampaignPanel({ contact, loading, activityLogs, onAction }: Camp
       )}
 
       {/* Action bar */}
-      <div className="border-t border-zinc-200 bg-white px-6 py-3 space-y-2">
+      <div className="border-t border-zinc-200 bg-white px-4 md:px-6 py-3 space-y-2">
         {/* Email action buttons */}
         <div className="grid grid-cols-2 gap-2">
           <ActionButton

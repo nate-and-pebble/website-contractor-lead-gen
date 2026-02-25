@@ -194,12 +194,12 @@ export default function CallListPage() {
           <Skeleton className="h-7 w-32" />
         </div>
         <div className="flex flex-1">
-          <div className="w-80 shrink-0 space-y-3 border-r border-zinc-200 p-4">
+          <div className="w-full md:w-80 shrink-0 space-y-3 border-r border-zinc-200 p-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-16 rounded-lg" />
             ))}
           </div>
-          <div className="flex-1 space-y-4 p-6">
+          <div className="hidden md:block flex-1 space-y-4 p-6">
             <Skeleton className="h-8 w-48" />
             <Skeleton className="h-24 rounded-lg" />
             <Skeleton className="h-40 rounded-lg" />
@@ -211,7 +211,7 @@ export default function CallListPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-4">
+      <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-4 md:px-6 py-4">
         <div>
           <h1 className="text-lg font-bold text-zinc-900">Call List</h1>
           <p className="text-xs text-zinc-500">
@@ -220,17 +220,22 @@ export default function CallListPage() {
         </div>
       </div>
       <div className="flex flex-1 min-h-0">
-        <CallQueue
-          contacts={contacts}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-        />
-        <CallPanel
-          contact={detail}
-          loading={detailLoading}
-          callLogs={callLogs}
-          onAction={handleCallAction}
-        />
+        <div className={`${selectedId ? "hidden md:contents" : "contents"}`}>
+          <CallQueue
+            contacts={contacts}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
+        </div>
+        <div className={`${selectedId ? "contents" : "hidden md:contents"}`}>
+          <CallPanel
+            contact={detail}
+            loading={detailLoading}
+            callLogs={callLogs}
+            onAction={handleCallAction}
+            onBack={() => setSelectedId(null)}
+          />
+        </div>
       </div>
     </div>
   );

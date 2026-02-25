@@ -199,7 +199,7 @@ function RawLeadsContent() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-8 py-5">
+      <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-4 md:px-8 py-5">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">Raw Leads</h1>
           <p className="mt-0.5 text-sm text-zinc-500">
@@ -218,7 +218,7 @@ function RawLeadsContent() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 bg-white px-8 py-3">
+      <div className="flex flex-wrap items-center gap-2 md:gap-3 border-b border-zinc-100 bg-white px-4 md:px-8 py-3">
         <div className="flex gap-1.5">
           {STATUS_OPTIONS.map((s) => (
             <button
@@ -272,7 +272,7 @@ function RawLeadsContent() {
           </div>
         ) : (
           <>
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[800px] text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 bg-zinc-50/80 text-xs font-medium uppercase tracking-wider text-zinc-500">
                   <th className="px-4 py-3">Name</th>
@@ -323,7 +323,7 @@ function RawLeadsContent() {
 
       {/* Reject modal */}
       {rejectingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
             <h3 className="text-lg font-semibold text-zinc-900">Reject Lead</h3>
             <p className="mt-1 text-sm text-zinc-500">
@@ -439,8 +439,8 @@ function LeadRow({
       {/* Expanded detail */}
       {expanded && (
         <tr>
-          <td colSpan={9} className="bg-zinc-50 px-8 py-5">
-            <div className="grid grid-cols-2 gap-6">
+          <td colSpan={9} className="bg-zinc-50 px-4 md:px-8 py-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <DetailField label="Source" value={lead.source} />
                 <DetailField label="Source URL" value={lead.source_url} link />

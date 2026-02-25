@@ -272,7 +272,7 @@ function ContactsContent() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-8 py-5">
+      <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-4 md:px-8 py-5">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">Contacts</h1>
           <p className="mt-0.5 text-sm text-zinc-500">
@@ -289,7 +289,7 @@ function ContactsContent() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 bg-white px-8 py-3">
+      <div className="flex flex-wrap items-center gap-2 md:gap-3 border-b border-zinc-100 bg-white px-4 md:px-8 py-3">
         {/* Status chips */}
         <div className="flex gap-1.5">
           {STATUS_OPTIONS.map((s) => (
@@ -378,7 +378,7 @@ function ContactsContent() {
           </div>
         ) : (
           <>
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[800px] text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 bg-zinc-50/80 text-xs font-medium uppercase tracking-wider text-zinc-500">
                   <th className="w-10 px-4 py-3">
@@ -484,7 +484,7 @@ function ContactsContent() {
 
       {/* Bulk action bar */}
       {selected.size > 0 && (
-        <div className="sticky bottom-0 flex items-center justify-between border-t border-zinc-200 bg-white px-8 py-3 shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
+        <div className="sticky bottom-0 flex items-center justify-between gap-2 border-t border-zinc-200 bg-white px-4 md:px-8 py-3 shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
           <span className="text-sm font-medium text-zinc-600">
             {selected.size} selected
           </span>

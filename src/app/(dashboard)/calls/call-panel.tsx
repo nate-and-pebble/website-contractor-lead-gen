@@ -15,6 +15,7 @@ import {
   Loader2,
   Clock,
   ArrowRight,
+  ArrowLeft,
 } from "lucide-react";
 import { type ContactDetail } from "@/lib/api-client";
 import type { CallLog } from "@/lib/types";
@@ -27,6 +28,7 @@ interface CallPanelProps {
   loading: boolean;
   callLogs: CallLog[];
   onAction: (outcome: CallOutcome, opts?: { notes?: string; followUpAt?: string }) => void;
+  onBack?: () => void;
 }
 
 const OUTCOME_LABELS: Record<string, string> = {
@@ -51,7 +53,7 @@ function formatLogDate(dateStr: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export function CallPanel({ contact, loading, callLogs, onAction }: CallPanelProps) {
+export function CallPanel({ contact, loading, callLogs, onAction, onBack }: CallPanelProps) {
   const [acting, setActing] = useState<string | null>(null);
   const [showSchedule, setShowSchedule] = useState(false);
   const [showBookingDate, setShowBookingDate] = useState(false);
@@ -108,7 +110,18 @@ export function CallPanel({ contact, loading, callLogs, onAction }: CallPanelPro
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
-      <div className="flex-1 space-y-5 overflow-y-auto p-6">
+      <div className="flex-1 space-y-5 overflow-y-auto p-4 md:p-6">
+        {/* Mobile back button */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 md:hidden"
+          >
+            <ArrowLeft size={16} />
+            Back to list
+          </button>
+        )}
+
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -128,7 +141,7 @@ export function CallPanel({ contact, loading, callLogs, onAction }: CallPanelPro
         </div>
 
         {/* Quick contact info — prominent for calling */}
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-2 md:gap-4">
           {contact.phone && (
             <a
               href={`tel:${contact.phone}`}
@@ -276,7 +289,7 @@ export function CallPanel({ contact, loading, callLogs, onAction }: CallPanelPro
       )}
 
       {/* Action bar */}
-      <div className="border-t border-zinc-200 bg-white px-6 py-3 space-y-2">
+      <div className="border-t border-zinc-200 bg-white px-4 md:px-6 py-3 space-y-2">
         {/* Call outcome buttons */}
         <div className="grid grid-cols-3 gap-2">
           <ActionButton

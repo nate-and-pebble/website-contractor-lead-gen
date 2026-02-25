@@ -12,7 +12,7 @@ interface QueueListProps {
 export function QueueList({ contacts, selectedId, onSelect }: QueueListProps) {
   if (contacts.length === 0) {
     return (
-      <div className="flex w-80 shrink-0 flex-col items-center justify-center border-r border-zinc-200 bg-white p-8 text-center">
+      <div className="flex w-full md:w-80 shrink-0 flex-col items-center justify-center border-r border-zinc-200 bg-white p-8 text-center">
         <div className="rounded-full bg-green-50 p-3">
           <Inbox size={24} className="text-green-500" />
         </div>
@@ -25,7 +25,7 @@ export function QueueList({ contacts, selectedId, onSelect }: QueueListProps) {
   }
 
   return (
-    <div className="flex w-80 shrink-0 flex-col border-r border-zinc-200 bg-white">
+    <div className="flex w-full md:w-80 shrink-0 flex-col border-r border-zinc-200 bg-white">
       <div className="border-b border-zinc-100 px-4 py-3">
         <h2 className="text-sm font-semibold text-zinc-800">
           Review Queue{" "}

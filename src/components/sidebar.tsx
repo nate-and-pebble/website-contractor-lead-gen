@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -15,6 +15,8 @@ import {
   LogOut,
   ChevronDown,
   ChevronUp,
+  Menu,
+  X,
 } from "lucide-react";
 
 const mainNav = [
@@ -33,13 +35,18 @@ const moreNav = [
 export function Sidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(() => {
-    // Auto-open if user is on one of the "more" pages
     return moreNav.some((item) => {
       if (item.href.includes("?")) return false;
       return pathname.startsWith(item.href) && pathname !== "/";
     });
   });
+
+  // Close mobile nav on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -55,10 +62,16 @@ export function Sidebar() {
     return pathname.startsWith(href);
   };
 
-  return (
-    <aside className="flex h-screen w-60 shrink-0 flex-col bg-zinc-900 text-zinc-400">
-      <div className="flex h-14 items-center px-5">
+  const navContent = (
+    <>
+      <div className="flex h-14 items-center justify-between px-5">
         <h1 className="text-base font-semibold tracking-tight text-white">Sales Engine</h1>
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="rounded-lg p-1 text-zinc-400 hover:text-white md:hidden"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       <nav className="flex-1 px-3 py-2 space-y-0.5">
@@ -129,6 +142,41 @@ export function Sidebar() {
           Sign out
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile top bar */}
+      <div className="fixed top-0 left-0 right-0 z-40 flex h-14 items-center gap-3 border-b border-zinc-200 bg-white px-4 md:hidden">
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="rounded-lg p-1.5 text-zinc-600 hover:bg-zinc-100"
+        >
+          <Menu size={22} />
+        </button>
+        <h1 className="text-base font-semibold text-zinc-900">Sales Engine</h1>
+      </div>
+
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Sidebar — desktop: static sidebar, mobile: slide-over drawer */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 flex w-60 flex-col bg-zinc-900 text-zinc-400
+          transition-transform duration-200 ease-out
+          ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+          md:static md:translate-x-0 md:h-screen md:shrink-0 md:transition-none
+        `}
+      >
+        {navContent}
+      </aside>
+    </>
   );
 }

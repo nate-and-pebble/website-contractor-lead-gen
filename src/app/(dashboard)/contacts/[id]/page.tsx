@@ -154,7 +154,7 @@ export default function ContactDetailPage({
   const zoominfo = contact.zoominfo_lead;
 
   return (
-    <div className="mx-auto max-w-4xl p-8">
+    <div className="mx-auto max-w-4xl p-4 md:p-8">
       {/* Back */}
       <button
         onClick={() => router.push("/contacts")}
@@ -165,20 +165,20 @@ export default function ContactDetailPage({
       </button>
 
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           {editing ? (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <input
                 value={editData.first_name}
                 onChange={(e) => setEditData({ ...editData, first_name: e.target.value })}
-                className="rounded-lg border border-zinc-200 px-3 py-1.5 text-2xl font-bold text-zinc-900"
+                className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xl md:text-2xl font-bold text-zinc-900"
                 placeholder="First name"
               />
               <input
                 value={editData.last_name}
                 onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
-                className="rounded-lg border border-zinc-200 px-3 py-1.5 text-2xl font-bold text-zinc-900"
+                className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xl md:text-2xl font-bold text-zinc-900"
                 placeholder="Last name"
               />
             </div>
@@ -188,7 +188,7 @@ export default function ContactDetailPage({
             </h1>
           )}
           {editing ? (
-            <div className="mt-2 flex gap-2">
+            <div className="mt-2 flex flex-wrap gap-2">
               <input
                 value={editData.title}
                 onChange={(e) => setEditData({ ...editData, title: e.target.value })}
@@ -274,7 +274,7 @@ export default function ContactDetailPage({
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-zinc-500">
           Contact Info
         </h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <InfoRow
             icon={<Mail size={16} />}
             label="Email"
@@ -464,7 +464,7 @@ export default function ContactDetailPage({
           {zoominfoOpen && (
             <div className="mt-2 rounded-xl border border-zinc-200 bg-white p-5 space-y-4">
               {/* Basic info grid */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <ZiField label="Seniority" value={zoominfo.seniority} />
                 <ZiField label="Company" value={zoominfo.company_name} />
                 <ZiField label="Industry" value={zoominfo.company_industry} />
