@@ -11,6 +11,7 @@ import {
   MoreHorizontal,
   Users,
   Inbox,
+  FileText,
   Settings,
   LogOut,
   ChevronDown,
@@ -29,6 +30,7 @@ const mainNav = [
 const moreNav = [
   { name: "Contacts", href: "/contacts", icon: Users },
   { name: "Raw Leads", href: "/raw-leads", icon: Inbox },
+  { name: "CRON Docs", href: "/admin/cron-docs", icon: FileText },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
